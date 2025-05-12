@@ -1,0 +1,9 @@
+*~
+*.swp
+*.swo
+.DS_Store
+.vscode
+.idea
+.venv/
+*.prom
+__pycache__

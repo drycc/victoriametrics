@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: drycc-victoriametrics-vmstorage
+  labels:
+    app: drycc-victoriametrics-vmstorage
+    heritage: drycc
+spec:
+  ports:
+  - port: 8482
+    name: http
+    targetPort: 8482
+  - port: 8400
+    name: vminsert
+    targetPort: 8400
+  - port: 8401
+    name: vmselect
+    targetPort: 8401
+  selector:
+    app: drycc-victoriametrics-vmstorage

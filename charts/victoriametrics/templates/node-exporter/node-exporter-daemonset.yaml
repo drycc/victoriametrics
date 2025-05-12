@@ -1,0 +1,99 @@
+{{- if (index .Values "nodeExporter" "enabled") }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: drycc-node-exporter
+  labels:
+    app: drycc-node-exporter
+    heritage: drycc
+  annotations:
+    component.drycc.cc/version: {{ .Values.imageTag }}
+spec:
+  selector:
+    matchLabels:
+      app: drycc-node-exporter
+  template:
+    metadata:
+      labels: {{- include "common.labels.standard" . | nindent 8 }}
+        app: drycc-node-exporter
+    spec:
+      containers:
+        - name: drycc-node-exporter
+          image: {{ .Values.imageRegistry }}/{{ .Values.imageOrg }}/victoriametrics:{{ .Values.imageTag }}
+          imagePullPolicy: {{.Values.imagePullPolicy}}
+          args:
+            - node_exporter
+            - --path.procfs=/host/proc
+            - --path.sysfs=/host/sys
+            {{- if (index .Values "nodeExporter" "hostRootFsMount" "enabled") }}
+            - --path.rootfs=/host/root
+            {{- end }}
+            - --web.listen-address=[$(HOST_IP)]:9100
+          env:
+            - name: HOST_IP
+              {{- if (index .Values "nodeExporter" "service" "listenOnAllInterfaces") }}
+              value: 0.0.0.0
+              {{- else }}
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.hostIP
+              {{- end }}
+            {{- range $key, $value := index .Values "nodeExporter" "env" }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          ports:
+            - name: metrics
+              containerPort: 9100
+              protocol: TCP
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /
+              port: 9100
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /
+              port: 9100
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          {{- with index .Values "nodeExporter" "resources" }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: proc
+              mountPath: /host/proc
+              readOnly:  true
+            - name: sys
+              mountPath: /host/sys
+              readOnly: true
+            {{- if (index .Values "nodeExporter" "hostRootFsMount" "enabled") }}
+            - mountPath: /host/root
+              mountPropagation: HostToContainer
+              name: root
+            {{- end }}
+      hostNetwork: {{ index .Values "nodeExporter" "hostNetwork" }}
+      hostPID: {{ index .Values "nodeExporter" "hostPID" }}
+      volumes:
+        - name: proc
+          hostPath:
+            path: /proc
+        - name: sys
+          hostPath:
+            path: /sys
+        {{- if (index .Values "nodeExporter" "hostRootFsMount" "enabled") }}
+        - hostPath:
+            path: /
+            type: ""
+          name: root
+        {{- end }}
+{{- end }}

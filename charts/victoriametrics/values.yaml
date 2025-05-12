@@ -1,0 +1,229 @@
+imageOrg: "drycc"
+imagePullPolicy: "Always"
+imageTag: "canary"
+imageRegistry: "registry.drycc.cc"
+
+## Enable diagnostic mode in the deployment
+##
+diagnosticMode:
+  ## @param diagnosticMode.enabled Enable diagnostic mode (all probes will be disabled and the command will be overridden)
+  ##
+  enabled: false
+  ## @param diagnosticMode.command Command to override all containers in the deployment
+  ##
+  command:
+    - sleep
+  ## @param diagnosticMode.args Args to override all containers in the deployment
+  ##
+  args:
+    - infinity
+
+## victoriametrics vmagent configuration
+##
+vmagent:
+  nodeAffinityPreset:
+    key: "drycc.cc/node"
+    type: "soft"
+    values:
+    - "true"
+  podAffinityPreset:
+    type: ""
+    extraMatchLabels:
+      security: "drycc-security"
+  podAntiAffinityPreset:
+    type: "soft"
+    extraMatchLabels:
+      app: "drycc-victoriametrics-vmagent"
+  replicas: 3
+  resources: {}
+  extraArgs:
+  - --memory.allowedPercent=70
+  - --promscrape.suppressScrapeErrors
+  - --promscrape.cluster.replicationFactor=2
+  - --remoteWrite.queues=16
+  - --remoteWrite.maxBlockSize=8MB
+  - --remoteWrite.maxDiskUsagePerURL=20GB
+  - --remoteWrite.showURLs=false
+  - --remoteWrite.sendTimeout=30s
+  - --remoteWrite.keepAliveTimeout=60s
+  - --remoteWrite.maxRowsPerRequest=300000
+
+## victoriametrics vminsert configuration
+##
+vminsert:
+  nodeAffinityPreset:
+    key: "drycc.cc/node"
+    type: "soft"
+    values:
+    - "true"
+  podAffinityPreset:
+    type: ""
+    extraMatchLabels:
+      security: "drycc-security"
+  podAntiAffinityPreset:
+    type: "soft"
+    extraMatchLabels:
+      app: "drycc-victoriametrics-vminsert"
+  replicas: 3
+  resources: {}
+  extraArgs: {}
+
+## victoriametrics vmselect configuration
+##
+vmselect:
+  nodeAffinityPreset:
+    key: "drycc.cc/node"
+    type: "soft"
+    values:
+    - "true"
+  podAffinityPreset:
+    type: ""
+    extraMatchLabels:
+      security: "drycc-security"
+  podAntiAffinityPreset:
+    type: "soft"
+    extraMatchLabels:
+      app: "drycc-victoriametrics-vmselect"
+  replicas: 3
+  resources: {}
+  extraArgs: {}
+
+## victoriametrics vmstorage configuration
+##
+vmstorage:
+  nodeAffinityPreset:
+    key: "drycc.cc/node"
+    type: "soft"
+    values:
+    - "true"
+  podAffinityPreset:
+    type: ""
+    extraMatchLabels:
+      security: "drycc-security"
+  podAntiAffinityPreset:
+    type: "soft"
+    extraMatchLabels:
+      app: "drycc-victoriametrics-vmstorage"
+  replicas: 3
+  resources: {}
+    # limits:
+    #   cpu: 200m
+    #   memory: 50Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 30Mi
+  extraArgs:
+  - --retentionPeriod=30d
+  storage:
+    enabled: false
+    size: 5Gi
+    storageClass: ""
+  temporary:
+    enabled: false
+    size: 5Gi
+    storageClass: ""
+
+## node-exporter configuration
+##
+nodeExporter:
+  enabled: true
+  service:
+    listenOnAllInterfaces: []
+    labels:
+      jobLabel: node-exporter
+  # Expose the service to the host network
+  hostNetwork: true
+  # Share the host process ID namespace
+  hostPID: true
+  hostRootFsMount:
+    enabled: true
+  resources: {}
+    # limits:
+    #   cpu: 200m
+    #   memory: 50Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 30Mi
+
+## kube-state-metrics configuration
+##
+kubeStateMetrics:
+  enabled: true
+  nodeAffinityPreset:
+    key: "drycc.cc/node"
+    type: "soft"
+    values:
+    - "true"
+  podAffinityPreset:
+    type: ""
+    extraMatchLabels:
+      security: "drycc-security"
+  podAntiAffinityPreset:
+    type: "soft"
+    extraMatchLabels:
+      app: "drycc-kube-state-metrics"
+  # Service
+  service:
+    # Provide any additional service annotations
+    annotations: {}
+  resources: {}
+    # limits:
+    #   cpu: 200m
+    #   memory: 50Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 30Mi
+  # Enabling kubeconfig will pass the --kubeconfig argument to the container
+  kubeconfig:
+    enabled: false
+    # base64 encoded kube-config file
+    secret:
+  # Enable self metrics configuration for service and Service Monitor
+  # Default values for telemetry configuration can be overridden
+  # If you set telemetryNodePort, you must also set service.type to NodePort
+  selfMonitor:
+    enabled: false
+    # telemetryHost: 0.0.0.0
+    # telemetryPort: 8081
+    # telemetryNodePort: 0
+  # Available collectors for kube-state-metrics.
+  # By default, all available resources are enabled, comment out to disable.
+  collectors:
+    - certificatesigningrequests
+    - configmaps
+    - cronjobs
+    - daemonsets
+    - deployments
+    - endpoints
+    - horizontalpodautoscalers
+    - ingresses
+    - jobs
+    - leases
+    - limitranges
+    - mutatingwebhookconfigurations
+    - namespaces
+    - networkpolicies
+    - nodes
+    - persistentvolumeclaims
+    - persistentvolumes
+    - poddisruptionbudgets
+    - pods
+    - replicasets
+    - replicationcontrollers
+    - resourcequotas
+    - secrets
+    - services
+    - statefulsets
+    - storageclasses
+    - validatingwebhookconfigurations
+    - volumeattachments
+    # - verticalpodautoscalers # not a default resource, see also: https://github.com/kubernetes/kube-state-metrics#enabling-verticalpodautoscalers
+
+global:
+  # Admin email, used for each component to send email to administrator
+  email: "drycc@drycc.cc"
+  # A domain name consists of one or more parts.
+  # Periods (.) are used to separate these parts.
+  # Each part must be 1 to 63 characters in length and can contain lowercase letters, digits, and hyphens (-).
+  # It must start and end with a lowercase letter or digit.
+  clusterDomain: "cluster.local"

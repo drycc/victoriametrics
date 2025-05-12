@@ -1,0 +1,110 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: drycc-victoriametrics-vmstorage
+  labels:
+    app: drycc-victoriametrics
+    heritage: drycc
+    component: drycc-victoriametrics-vmstorage
+spec:
+  replicas: {{ .Values.vmstorage.replicas }}
+  selector:
+    matchLabels:
+      app: drycc-victoriametrics
+      component: drycc-victoriametrics-vmstorage
+  template:
+    metadata:
+      labels: {{- include "common.labels.standard" . | nindent 8 }}
+        app: drycc-victoriametrics
+        component: drycc-victoriametrics-vmstorage
+    spec:
+      affinity:
+        podAffinity: {{- include "common.affinities.pods" (dict "type" .Values.vmstorage.podAffinityPreset.type "component" "" "extraMatchLabels" .Values.vmstorage.podAffinityPreset.extraMatchLabels "topologyKey" "" "context" $) | nindent 10 }}
+        podAntiAffinity: {{- include "common.affinities.pods" (dict "type" .Values.vmstorage.podAntiAffinityPreset.type "component" "" "extraMatchLabels" .Values.vmstorage.podAntiAffinityPreset.extraMatchLabels "topologyKey" "" "context" $) | nindent 10 }}
+        nodeAffinity: {{- include "common.affinities.nodes" (dict "type" .Values.vmstorage.nodeAffinityPreset.type "key" .Values.vmstorage.nodeAffinityPreset.key "values" .Values.vmstorage.nodeAffinityPreset.values ) | nindent 10 }}
+      containers:
+      - name: drycc-victoriametrics-vmstorage
+        image: {{.Values.imageRegistry}}/{{.Values.imageOrg}}/victoriametrics:{{.Values.imageTag}}
+        imagePullPolicy: {{.Values.imagePullPolicy}}
+        {{- if .Values.diagnosticMode.enabled }}
+        command: {{- include "common.tplvalues.render" (dict "value" .Values.diagnosticMode.command "context" $) | nindent 10 }}
+        args: {{- include "common.tplvalues.render" (dict "value" .Values.diagnosticMode.args "context" $) | nindent 10 }}
+        {{- else }}
+        args:
+        - vmstorage
+        - --httpListenAddr=:8482
+        - --storageDataPath=/data/storage
+        {{- if .Values.vmstorage.temporary.enabled }}
+        - --temporaryDataPath=/data/temporary
+        {{- end }}
+        - --vminsertAddr=8400
+        - --vmselectAddr=8401
+        {{- if .Values.vmstorage.extraArgs }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.vmstorage.extraArgs "context" $) | nindent 8 }}
+        {{- end }}
+        {{- end }}
+        {{- with index .Values "vmstorage" "resources" }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        ports:
+        - containerPort: 8482
+        - containerPort: 8400
+        - containerPort: 8401
+        livenessProbe:
+          tcpSocket:
+            port: 8482
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8482
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8482
+        {{- if or .Values.vmstorage.storage.enabled .Values.vmstorage.temporary.enabled }}
+        volumeMounts:
+        {{- if .Values.vmstorage.storage.enabled }}
+        - name: victoriametrics-vmstorage-storage
+          mountPath: /data/storage
+        {{- end }}
+        {{- if .Values.vmstorage.temporary.enabled }}
+        - name: victoriametrics-vmstorage-temporary
+          mountPath: /data/temporary
+        {{- end }}
+        {{- end }}
+  {{- if or .Values.vmstorage.storage.enabled .Values.vmstorage.temporary.enabled }}
+  volumeClaimTemplates:
+  {{- if .Values.vmstorage.storage.enabled }}
+  - metadata:
+      name: victoriametrics-vmstorage-storage
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      {{- if .Values.vmstorage.storage.storageClass }}
+      {{- if (eq "-" .Values.vmstorage.storage.storageClass) }}
+      storageClassName: ""
+      {{- else }}
+      storageClassName: "{{ .Values.vmstorage.storage.storageClass }}"
+      {{- end }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.vmstorage.storage.size | quote }}
+  {{- end }}
+  {{- if .Values.vmstorage.temporary.enabled }}
+  - metadata:
+      name: victoriametrics-vmstorage-temporary
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      {{- if .Values.vmstorage.temporary.storageClass }}
+      {{- if (eq "-" .Values.vmstorage.temporary.storageClass) }}
+      storageClassName: ""
+      {{- else }}
+      storageClassName: "{{ .Values.vmstorage.temporary.storageClass }}"
+      {{- end }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.vmstorage.temporary.size | quote }}
+  {{- end }}
+  {{- end }}

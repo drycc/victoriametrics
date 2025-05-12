@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: drycc-victoriametrics-vmagent
+  labels:
+    app: drycc-victoriametrics
+    heritage: drycc
+    component: drycc-victoriametrics-vmagent
+spec:
+  replicas: {{ .Values.vmagent.replicas }}
+  selector:
+    matchLabels:
+      app: drycc-victoriametrics
+      component: drycc-victoriametrics-vmagent
+  template:
+    metadata:
+      labels: {{- include "common.labels.standard" . | nindent 8 }}
+        app: drycc-victoriametrics
+        component: drycc-victoriametrics-vmagent
+      annotations:
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "8429"
+        prometheus.io/scrape: "true"
+    spec:
+      affinity:
+        podAffinity: {{- include "common.affinities.pods" (dict "type" .Values.vmagent.podAffinityPreset.type "component" "" "extraMatchLabels" .Values.vmagent.podAffinityPreset.extraMatchLabels "topologyKey" "" "context" $) | nindent 10 }}
+        podAntiAffinity: {{- include "common.affinities.pods" (dict "type" .Values.vmagent.podAntiAffinityPreset.type "component" "" "extraMatchLabels" .Values.vmagent.podAntiAffinityPreset.extraMatchLabels "topologyKey" "" "context" $) | nindent 10 }}
+        nodeAffinity: {{- include "common.affinities.nodes" (dict "type" .Values.vmagent.nodeAffinityPreset.type "key" .Values.vmagent.nodeAffinityPreset.key "values" .Values.vmagent.nodeAffinityPreset.values ) | nindent 10 }}
+      containers:
+      - name: drycc-victoriametrics-vmagent
+        image: {{.Values.imageRegistry}}/{{.Values.imageOrg}}/victoriametrics:{{.Values.imageTag}}
+        imagePullPolicy: {{.Values.imagePullPolicy}}
+        {{- if .Values.diagnosticMode.enabled }}
+        command: {{- include "common.tplvalues.render" (dict "value" .Values.diagnosticMode.command "context" $) | nindent 10 }}
+        args: {{- include "common.tplvalues.render" (dict "value" .Values.diagnosticMode.args "context" $) | nindent 10 }}
+        {{- else }}
+        args:
+        - vmagent
+        - --remoteWrite.url={{ printf "http://drycc-victoriametrics-vminsert.%s.svc.%s:8480/insert/0/prometheus/api/v1/write" $.Release.Namespace $.Values.global.clusterDomain }}
+        - --remoteWrite.tmpDataPath=/data
+        - --httpListenAddr=:8429
+        - --promscrape.cluster.membersCount={{.Values.vmagent.replicas}}
+        - --promscrape.cluster.memberNum=$(SHARD_NUM)
+        {{- if .Values.vmagent.extraArgs }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.vmagent.extraArgs "context" $) | nindent 8 }}
+        {{- end }}
+        {{- end }}
+        {{- with index .Values "vmagent" "resources" }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        ports:
+        - containerPort: 8429
+        env:
+        - name: SHARD_NUM
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.annotations['apps.kubernetes.io/pod-index']
+        livenessProbe:
+          tcpSocket:
+            port: 8429
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8429
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8429
+        volumeMounts:
+        - name: empty-dir
+          mountPath: /data
+      volumes:
+      - name: empty-dir
+        emptyDir: {}

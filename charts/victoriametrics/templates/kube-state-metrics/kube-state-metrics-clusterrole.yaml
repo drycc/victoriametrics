@@ -1,0 +1,186 @@
+{{- if (index .Values "kubeStateMetrics" "enabled") }}
+{{- $collectors := (index .Values "kubeStateMetrics" "collectors" ) }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app: drycc-kube-state-metrics
+    heritage: drycc
+  name: {{ printf "%s:drycc-kube-state-metrics" .Release.Namespace | quote }}
+rules:
+{{- if has "certificatesigningrequests" $collectors }}
+- apiGroups: ["certificates.k8s.io"]
+  resources:
+  - certificatesigningrequests
+  verbs: ["list", "watch"]
+{{- end }}
+{{- if has "configmaps" $collectors }}
+- apiGroups: [""]
+  resources:
+  - configmaps
+  verbs: ["list", "watch"]
+{{- end }}
+{{- if has "cronjobs" $collectors }}
+- apiGroups: ["batch"]
+  resources:
+  - cronjobs
+  verbs: ["list", "watch"]
+{{- end }}
+{{- if has "daemonsets" $collectors }}
+- apiGroups: ["extensions", "apps"]
+  resources:
+  - daemonsets
+  verbs: ["list", "watch"]
+{{- end }}
+{{- if has "deployments" $collectors }}
+- apiGroups: ["extensions", "apps"]
+  resources:
+  - deployments
+  verbs: ["list", "watch"]
+{{- end }}
+{{- if has "endpoints" $collectors }}
+- apiGroups: [""]
+  resources:
+  - endpoints
+  verbs: ["list", "watch"]
+{{- end }}
+{{- if has "horizontalpodautoscalers" $collectors }}
+- apiGroups: ["autoscaling"]
+  resources:
+  - horizontalpodautoscalers
+  verbs: ["list", "watch"]
+{{- end }}
+{{- if has "ingresses" $collectors }}
+- apiGroups: ["extensions", "networking.k8s.io"]
+  resources:
+  - ingresses
+  verbs: ["list", "watch"]
+{{- end }}
+{{- if has "jobs" $collectors }}
+- apiGroups: ["batch"]
+  resources:
+  - jobs
+  verbs: ["list", "watch"]
+{{- end }}
+{{- if has "leases" $collectors }}
+- apiGroups: ["coordination.k8s.io"]
+  resources:
+  - leases
+  verbs: ["list", "watch"]
+{{- end }}
+{{- if has "limitranges" $collectors }}
+- apiGroups: [""]
+  resources:
+  - limitranges
+  verbs: ["list", "watch"]
+{{- end }}
+{{- if has "mutatingwebhookconfigurations" $collectors }}
+- apiGroups: ["admissionregistration.k8s.io"]
+  resources:
+    - mutatingwebhookconfigurations
+  verbs: ["list", "watch"]
+{{- end }}
+{{- if has "namespaces" $collectors }}
+- apiGroups: [""]
+  resources:
+  - namespaces
+  verbs: ["list", "watch"]
+{{- end }}
+{{- if has "networkpolicies" $collectors }}
+- apiGroups: ["networking.k8s.io"]
+  resources:
+  - networkpolicies
+  verbs: ["list", "watch"]
+{{- end }}
+{{- if has "nodes" $collectors }}
+- apiGroups: [""]
+  resources:
+  - nodes
+  verbs: ["list", "watch"]
+{{- end }}
+{{- if has "persistentvolumeclaims" $collectors }}
+- apiGroups: [""]
+  resources:
+  - persistentvolumeclaims
+  verbs: ["list", "watch"]
+{{- end }}
+{{- if has "persistentvolumes" $collectors }}
+- apiGroups: [""]
+  resources:
+  - persistentvolumes
+  verbs: ["list", "watch"]
+{{- end }}
+{{- if has "poddisruptionbudgets" $collectors }}
+- apiGroups: ["policy"]
+  resources:
+    - poddisruptionbudgets
+  verbs: ["list", "watch"]
+{{- end }}
+{{- if has "pods" $collectors }}
+- apiGroups: [""]
+  resources:
+  - pods
+  verbs: ["get", "list", "watch"]
+{{- end }}
+{{- if has "replicasets" $collectors }}
+- apiGroups: ["extensions", "apps"]
+  resources:
+  - replicasets
+  verbs: ["list", "watch"]
+{{- end }}
+{{- if has "replicationcontrollers" $collectors }}
+- apiGroups: [""]
+  resources:
+  - replicationcontrollers
+  verbs: ["list", "watch"]
+{{- end }}
+{{- if has "resourcequotas" $collectors }}
+- apiGroups: [""]
+  resources:
+  - resourcequotas
+  verbs: ["list", "watch"]
+{{- end }}
+{{- if has "secrets" $collectors }}
+- apiGroups: [""]
+  resources:
+  - secrets
+  verbs: ["list", "watch"]
+{{- end }}
+{{- if has "services" $collectors }}
+- apiGroups: [""]
+  resources:
+  - services
+  verbs: ["list", "watch"]
+{{- end }}
+{{- if has "statefulsets" $collectors }}
+- apiGroups: ["apps"]
+  resources:
+  - statefulsets
+  verbs: ["get", "list", "watch"]
+{{- end }}
+{{- if has "storageclasses" $collectors }}
+- apiGroups: ["storage.k8s.io"]
+  resources:
+    - storageclasses
+  verbs: ["list", "watch"]
+{{- end }}
+{{- if has "validatingwebhookconfigurations" $collectors }}
+- apiGroups: ["admissionregistration.k8s.io"]
+  resources:
+    - validatingwebhookconfigurations
+  verbs: ["list", "watch"]
+{{- end }}
+{{- if has "volumeattachments" $collectors }}
+- apiGroups: ["storage.k8s.io"]
+  resources:
+    - volumeattachments
+  verbs: ["list", "watch"]
+{{- end }}
+{{- if has "verticalpodautoscalers" $collectors }}
+- apiGroups: ["autoscaling.k8s.io"]
+  resources:
+    - verticalpodautoscalers
+  verbs: ["list", "watch"]
+{{- end }}
+{{- end -}}

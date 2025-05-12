@@ -1,0 +1,123 @@
+{{- if (index .Values "kubeStateMetrics" "enabled") }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: drycc-kube-state-metrics
+  labels:
+    app: drycc-kube-state-metrics
+    heritage: drycc
+  annotations:
+    component.drycc.cc/version: {{ .Values.imageTag }}
+spec:
+  selector:
+    matchLabels:
+      app: drycc-kube-state-metrics
+  replicas: {{ index .Values "kubeStateMetrics" "replicas" }}
+  serviceName: drycc-kube-state-metrics
+  volumeClaimTemplates: []
+  template:
+    metadata:
+      labels: {{- include "common.labels.standard" . | nindent 8 }}
+        app: drycc-kube-state-metrics
+    spec:
+      serviceAccount: drycc-kube-state-metrics
+      affinity:
+        podAffinity: {{- include "common.affinities.pods" (dict "type" .Values.kubeStateMetrics.podAffinityPreset.type "component" "" "extraMatchLabels" .Values.kubeStateMetrics.podAffinityPreset.extraMatchLabels "topologyKey" "" "context" $) | nindent 10 }}
+        podAntiAffinity: {{- include "common.affinities.pods" (dict "type" .Values.kubeStateMetrics.podAntiAffinityPreset.type "component" "" "extraMatchLabels" .Values.kubeStateMetrics.podAntiAffinityPreset.extraMatchLabels "topologyKey" "" "context" $) | nindent 10 }}
+        nodeAffinity: {{- include "common.affinities.nodes" (dict "type" ( index .Values "kubeStateMetrics" "nodeAffinityPreset" "type") "key" ( index .Values "kubeStateMetrics" "nodeAffinityPreset" "key") "values" ( index .Values "kubeStateMetrics" "nodeAffinityPreset" "values" ) ) | nindent 10 }}
+      hostNetwork: {{ index .Values "kubeStateMetrics" "hostNetwork" }}
+      containers:
+      - name: drycc-kube-state-metrics
+        image: {{ .Values.imageRegistry }}/{{ .Values.imageOrg }}/victoriametrics:{{ .Values.imageTag }}
+        imagePullPolicy: {{.Values.imagePullPolicy}}
+        args:
+        - kube-state-metrics
+        {{-  if (index .Values "kubeStateMetrics" "extraArgs") }}
+        {{- index .Values "kubeStateMetrics" "extraArgs" | toYaml | nindent 8 }}
+        {{-  end  }}
+        - --port=8080
+        {{-  if (index .Values "kubeStateMetrics" "collectors")  }}
+        - --resources={{ index .Values "kubeStateMetrics" "collectors" | join "," }}
+        {{-  end  }}
+        {{- if (index .Values "kubeStateMetrics" "metricLabelsAllowlist") }}
+        - --metric-labels-allowlist={{ index .Values "kubeStateMetrics" "metricLabelsAllowlist" | join "," }}
+        {{- end }}
+        {{- if (index .Values "kubeStateMetrics" "metricAnnotationsAllowList") }}
+        - --metric-annotations-allowlist={{ index .Values "kubeStateMetrics" "metricAnnotationsAllowList" | join "," }}
+        {{- end }}
+        {{- if (index .Values "kubeStateMetrics" "metricAllowlist") }}
+        - --metric-allowlist={{ index .Values "kubeStateMetrics" "metricAllowlist" | join "," }}
+        {{- end }}
+        {{- if (index .Values "kubeStateMetrics" "metricDenylist") }}
+        - --metric-denylist={{ index .Values "kubeStateMetrics" "metricDenylist" | join "," }}
+        {{- end }}
+        {{- $namespaces := list }}
+        {{- if (index .Values "kubeStateMetrics" "namespaces") }}
+        {{- range $ns := join "," (index .Values "kubeStateMetrics" "namespaces") | split "," }}
+        {{- $namespaces = append $namespaces (tpl $ns $) }}
+        {{- end }}
+        {{- end }}
+        {{- if (index .Values "kubeStateMetrics" "releaseNamespace") }}
+        {{- $namespaces = append $namespaces ( .Release.Namespace ) }}
+        {{- end }}
+        {{- if $namespaces }}
+        - --namespaces={{ $namespaces | mustUniq | join "," }}
+        {{- end }}
+        {{- if (index .Values "kubeStateMetrics" "namespacesDenylist") }}
+        - --namespaces-denylist={{ tpl (index .Values "kubeStateMetrics" "namespacesDenylist" | join ",") $ }}
+        {{- end }}
+        - --pod=$(POD_NAME)
+        - --pod-namespace=$(POD_NAMESPACE)
+        {{- if (index .Values "kubeStateMetrics" "kubeconfig" "enabled") }}
+        - --kubeconfig=/opt/k8s/.kube/config
+        {{- end }}
+        {{- if (index .Values "kubeStateMetrics" "selfMonitor" "enabled") }}
+        {{- if (index .Values "kubeStateMetrics" "selfMonitor" "telemetryHost") }}
+        - --telemetry-host={{ index .Values "kubeStateMetrics" "selfMonitor" "telemetryHost" }}
+        {{- end }}
+        {{- if (index .Values "kubeStateMetrics" "selfMonitor" "telemetryPort") }}
+        - --telemetry-port={{ index .Values "kubeStateMetrics" "selfMonitor" "telemetryPort" | default 8081 }}
+        {{- end }}
+        {{- end }}
+        env:
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+        volumeMounts:
+        {{- if (index .Values "kubeStateMetrics" "kubeconfig" "enabled") }}
+        - name: kubeconfig
+          mountPath: /opt/k8s/.kube/
+          readOnly: true
+        {{- end }}
+        ports:
+        - containerPort: 8080
+          name: "http"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 5
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 5
+          timeoutSeconds: 5
+      {{- if or (index .Values "kubeStateMetrics" "kubeconfig" "enabled") (index .Values "kubeStateMetrics" "volumes") }}
+      volumes:
+      {{- if (index .Values "kubeStateMetrics" "kubeconfig" "enabled")}}
+        - name: kubeconfig
+          secret:
+            secretName: kube-state-metrics-kubeconfig
+      {{- end }}
+      {{- if (index .Values "kubeStateMetrics" "volumes") }}
+{{ toYaml index .Values "kubeStateMetrics" "volumes" | indent 8 }}
+      {{- end }}
+      {{- end }}
+{{- end }}

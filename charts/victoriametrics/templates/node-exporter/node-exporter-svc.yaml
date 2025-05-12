@@ -1,0 +1,22 @@
+{{- if (index .Values "nodeExporter" "enabled") }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: drycc-node-exporter
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: "/metrics"
+    prometheus.io/port: "9100"
+    {{- with (index .Values "nodeExporter" "annotations") }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  labels:
+    heritage: drycc
+spec:
+  ports:
+    - name: metrics
+      port: 9100
+      targetPort: 9100
+  selector:
+    app: drycc-node-exporter
+{{- end }}
