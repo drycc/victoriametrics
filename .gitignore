@@ -7,3 +7,5 @@
 .venv/
 *.prom
 __pycache__
+charts/victoriametrics/Chart.lock
+charts/victoriametrics/charts
