@@ -3,9 +3,11 @@ kind: Service
 metadata:
   name: drycc-victoriametrics-vmstorage
   labels:
-    app: drycc-victoriametrics-vmstorage
+    app: drycc-victoriametrics
     heritage: drycc
+    component: drycc-victoriametrics-vmstorage
 spec:
+  clusterIP: None
   ports:
   - port: 8482
     name: http
@@ -17,4 +19,5 @@ spec:
     name: vmselect
     targetPort: 8401
   selector:
-    app: drycc-victoriametrics-vmstorage
+    app: drycc-victoriametrics
+    component: drycc-victoriametrics-vmstorage

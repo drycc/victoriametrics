@@ -1,3 +1,10 @@
+{{- $replicas := .Values.vmstorage.replicas | int -}}
+{{- $endpoints := list -}}
+{{- range $i := until $replicas -}}
+  {{- $endpoint := printf "drycc-victoriametrics-vmstorage-%d.drycc-victoriametrics-vmstorage.%s.svc.%s:8401" $i $.Release.Namespace $.Values.global.clusterDomain -}}
+  {{- $endpoints = append $endpoints $endpoint -}}
+{{- end -}}
+{{- $storageNodes := join "," $endpoints -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -22,6 +29,15 @@ spec:
         podAffinity: {{- include "common.affinities.pods" (dict "type" .Values.vmselect.podAffinityPreset.type "component" "" "extraMatchLabels" .Values.vmselect.podAffinityPreset.extraMatchLabels "topologyKey" "" "context" $) | nindent 10 }}
         podAntiAffinity: {{- include "common.affinities.pods" (dict "type" .Values.vmselect.podAntiAffinityPreset.type "component" "" "extraMatchLabels" .Values.vmselect.podAntiAffinityPreset.extraMatchLabels "topologyKey" "" "context" $) | nindent 10 }}
         nodeAffinity: {{- include "common.affinities.nodes" (dict "type" .Values.vmselect.nodeAffinityPreset.type "key" .Values.vmselect.nodeAffinityPreset.key "values" .Values.vmselect.nodeAffinityPreset.values ) | nindent 10 }}
+      initContainers:
+      - name: drycc-victoriametrics-vmselect-init
+        image: {{.Values.imageRegistry}}/{{.Values.imageOrg}}/python-dev:latest
+        imagePullPolicy: {{.Values.imagePullPolicy}}
+        args:
+        - netcat
+        - -v
+        - -a
+        - {{ $storageNodes }}
       containers:
       - name: drycc-victoriametrics-vmselect
         image: {{.Values.imageRegistry}}/{{.Values.imageOrg}}/victoriametrics:{{.Values.imageTag}}
@@ -32,7 +48,7 @@ spec:
         {{- else }}
         args:
         - vmselect
-        - --storageNode={{ range $i := until (.Values.vmstorage.replicas | int) }}{{ if $i }},{{ end }}drycc-victoriametrics-vmstorage-{{$i}}.drycc-victoriametrics-vmstorage.{{$.Release.Namespace}}.svc.{{$.Values.global.clusterDomain}}:8401{{ end }}
+        - --storageNode={{ $storageNodes }}
         - --httpListenAddr=:8481
         - --cacheDataPath=/cache
         {{- if .Values.vmselect.extraArgs }}

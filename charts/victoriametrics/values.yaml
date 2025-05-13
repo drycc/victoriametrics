@@ -34,7 +34,7 @@ vmagent:
     type: "soft"
     extraMatchLabels:
       app: "drycc-victoriametrics-vmagent"
-  replicas: 3
+  replicas: 1
   resources: {}
   extraArgs:
   - --memory.allowedPercent=70
@@ -43,10 +43,10 @@ vmagent:
   - --remoteWrite.queues=16
   - --remoteWrite.maxBlockSize=8MB
   - --remoteWrite.maxDiskUsagePerURL=20GB
-  - --remoteWrite.showURLs=false
+  - --remoteWrite.showURL=false
   - --remoteWrite.sendTimeout=30s
-  - --remoteWrite.keepAliveTimeout=60s
-  - --remoteWrite.maxRowsPerRequest=300000
+  - --remoteWrite.maxRowsPerBlock=300000
+  prometheus: ""
 
 ## victoriametrics vminsert configuration
 ##
@@ -64,7 +64,7 @@ vminsert:
     type: "soft"
     extraMatchLabels:
       app: "drycc-victoriametrics-vminsert"
-  replicas: 3
+  replicas: 1
   resources: {}
   extraArgs: {}
 
@@ -84,7 +84,7 @@ vmselect:
     type: "soft"
     extraMatchLabels:
       app: "drycc-victoriametrics-vmselect"
-  replicas: 3
+  replicas: 1
   resources: {}
   extraArgs: {}
 
@@ -104,7 +104,7 @@ vmstorage:
     type: "soft"
     extraMatchLabels:
       app: "drycc-victoriametrics-vmstorage"
-  replicas: 3
+  replicas: 1
   resources: {}
     # limits:
     #   cpu: 200m
@@ -114,11 +114,11 @@ vmstorage:
     #   memory: 30Mi
   extraArgs:
   - --retentionPeriod=30d
-  storage:
+  temporary:
     enabled: false
     size: 5Gi
     storageClass: ""
-  temporary:
+  persistence:
     enabled: false
     size: 5Gi
     storageClass: ""

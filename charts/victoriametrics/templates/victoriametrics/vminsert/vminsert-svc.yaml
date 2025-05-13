@@ -6,10 +6,15 @@ metadata:
     prometheus.io/scrape: "true"
     prometheus.io/port: "8480"
     prometheus.io/path: "/metrics"
+  labels:
+    app: drycc-victoriametrics
+    heritage: drycc
+    component: drycc-victoriametrics-vminsert
 spec:
-  type: ClusterIP
+  clusterIP: None
   selector:
-    app: drycc-victoriametrics-vminsert
+    app: drycc-victoriametrics
+    component: drycc-victoriametrics-vminsert
   ports:
   - name: http
     port: 8480

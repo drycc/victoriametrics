@@ -1,3 +1,10 @@
+{{- $replicas := .Values.vmstorage.replicas | int -}}
+{{- $endpoints := list -}}
+{{- range $i := until $replicas -}}
+  {{- $endpoint := printf "drycc-victoriametrics-vmstorage-%d.drycc-victoriametrics-vmstorage.%s.svc.%s:8400" $i $.Release.Namespace $.Values.global.clusterDomain -}}
+  {{- $endpoints = append $endpoints $endpoint -}}
+{{- end -}}
+{{- $storageNodes := join "," $endpoints -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -22,6 +29,15 @@ spec:
         podAffinity: {{- include "common.affinities.pods" (dict "type" .Values.vminsert.podAffinityPreset.type "component" "" "extraMatchLabels" .Values.vminsert.podAffinityPreset.extraMatchLabels "topologyKey" "" "context" $) | nindent 10 }}
         podAntiAffinity: {{- include "common.affinities.pods" (dict "type" .Values.vminsert.podAntiAffinityPreset.type "component" "" "extraMatchLabels" .Values.vminsert.podAntiAffinityPreset.extraMatchLabels "topologyKey" "" "context" $) | nindent 10 }}
         nodeAffinity: {{- include "common.affinities.nodes" (dict "type" .Values.vminsert.nodeAffinityPreset.type "key" .Values.vminsert.nodeAffinityPreset.key "values" .Values.vminsert.nodeAffinityPreset.values ) | nindent 10 }}
+      initContainers:
+      - name: drycc-victoriametrics-vminsert-init
+        image: {{.Values.imageRegistry}}/{{.Values.imageOrg}}/python-dev:latest
+        imagePullPolicy: {{.Values.imagePullPolicy}}
+        args:
+        - netcat
+        - -v
+        - -a
+        - {{ $storageNodes }}
       containers:
       - name: drycc-victoriametrics-vminsert
         image: {{.Values.imageRegistry}}/{{.Values.imageOrg}}/victoriametrics:{{.Values.imageTag}}
@@ -31,8 +47,9 @@ spec:
         args: {{- include "common.tplvalues.render" (dict "value" .Values.diagnosticMode.args "context" $) | nindent 10 }}
         {{- else }}
         args:
+        - vminsert
         - --httpListenAddr=:8480
-        - --storageNode={{ range $i := until (.Values.vmstorage.replicas | int) }}{{ if $i }},{{ end }}drycc-victoriametrics-vmstorage-{{$i}}.drycc-victoriametrics-vmstorage.{{$.Release.Namespace}}.svc.{{$.Values.global.clusterDomain}}:8400{{ end }}
+        - --storageNode={{ $storageNodes }}
         {{- if .Values.vminsert.extraArgs }}
         {{- include "common.tplvalues.render" (dict "value" .Values.vminsert.extraArgs "context" $) | nindent 8 }}
         {{- end }}

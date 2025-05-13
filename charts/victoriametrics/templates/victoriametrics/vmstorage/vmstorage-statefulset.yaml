@@ -7,6 +7,7 @@ metadata:
     heritage: drycc
     component: drycc-victoriametrics-vmstorage
 spec:
+  serviceName: drycc-victoriametrics-vmstorage
   replicas: {{ .Values.vmstorage.replicas }}
   selector:
     matchLabels:
@@ -33,12 +34,12 @@ spec:
         args:
         - vmstorage
         - --httpListenAddr=:8482
-        - --storageDataPath=/data/storage
         {{- if .Values.vmstorage.temporary.enabled }}
         - --temporaryDataPath=/data/temporary
         {{- end }}
-        - --vminsertAddr=8400
-        - --vmselectAddr=8401
+        - --storageDataPath=/data/storage
+        - --vminsertAddr=:8400
+        - --vmselectAddr=:8401
         {{- if .Values.vmstorage.extraArgs }}
         {{- include "common.tplvalues.render" (dict "value" .Values.vmstorage.extraArgs "context" $) | nindent 8 }}
         {{- end }}
@@ -62,35 +63,19 @@ spec:
           httpGet:
             path: /health
             port: 8482
-        {{- if or .Values.vmstorage.storage.enabled .Values.vmstorage.temporary.enabled }}
+        {{- if or .Values.vmstorage.temporary.enabled .Values.vmstorage.persistence.enabled }}
         volumeMounts:
-        {{- if .Values.vmstorage.storage.enabled }}
-        - name: victoriametrics-vmstorage-storage
-          mountPath: /data/storage
-        {{- end }}
         {{- if .Values.vmstorage.temporary.enabled }}
         - name: victoriametrics-vmstorage-temporary
           mountPath: /data/temporary
         {{- end }}
+        {{- if .Values.vmstorage.persistence.enabled }}
+        - name: victoriametrics-vmstorage-storage
+          mountPath: /data/storage
         {{- end }}
-  {{- if or .Values.vmstorage.storage.enabled .Values.vmstorage.temporary.enabled }}
+        {{- end }}
+  {{- if or .Values.vmstorage.temporary.enabled .Values.vmstorage.persistence.enabled }}
   volumeClaimTemplates:
-  {{- if .Values.vmstorage.storage.enabled }}
-  - metadata:
-      name: victoriametrics-vmstorage-storage
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      {{- if .Values.vmstorage.storage.storageClass }}
-      {{- if (eq "-" .Values.vmstorage.storage.storageClass) }}
-      storageClassName: ""
-      {{- else }}
-      storageClassName: "{{ .Values.vmstorage.storage.storageClass }}"
-      {{- end }}
-      {{- end }}
-      resources:
-        requests:
-          storage: {{ .Values.vmstorage.storage.size | quote }}
-  {{- end }}
   {{- if .Values.vmstorage.temporary.enabled }}
   - metadata:
       name: victoriametrics-vmstorage-temporary
@@ -106,5 +91,21 @@ spec:
       resources:
         requests:
           storage: {{ .Values.vmstorage.temporary.size | quote }}
+  {{- end }}
+  {{- if .Values.vmstorage.persistence.enabled }}
+  - metadata:
+      name: victoriametrics-vmstorage-storage
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      {{- if .Values.vmstorage.persistence.storageClass }}
+      {{- if (eq "-" .Values.vmstorage.persistence.storageClass) }}
+      storageClassName: ""
+      {{- else }}
+      storageClassName: "{{ .Values.vmstorage.persistence.storageClass }}"
+      {{- end }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.vmstorage.persistence.size | quote }}
   {{- end }}
   {{- end }}

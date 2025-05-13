@@ -3,12 +3,15 @@ kind: Service
 metadata:
   name: drycc-victoriametrics-vmselect
   labels:
-    app: drycc-victoriametrics-vmselect
+    app: drycc-victoriametrics
     heritage: drycc
+    component: drycc-victoriametrics-vmselect
 spec:
+  clusterIP: None
   ports:
   - port: 8481
     name: http
     targetPort: 8481
   selector:
-    app: drycc-victoriametrics-vmselect
+    app: drycc-victoriametrics
+    component: drycc-victoriametrics-vmselect

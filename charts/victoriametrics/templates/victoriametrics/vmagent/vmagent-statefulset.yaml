@@ -26,6 +26,16 @@ spec:
         podAffinity: {{- include "common.affinities.pods" (dict "type" .Values.vmagent.podAffinityPreset.type "component" "" "extraMatchLabels" .Values.vmagent.podAffinityPreset.extraMatchLabels "topologyKey" "" "context" $) | nindent 10 }}
         podAntiAffinity: {{- include "common.affinities.pods" (dict "type" .Values.vmagent.podAntiAffinityPreset.type "component" "" "extraMatchLabels" .Values.vmagent.podAntiAffinityPreset.extraMatchLabels "topologyKey" "" "context" $) | nindent 10 }}
         nodeAffinity: {{- include "common.affinities.nodes" (dict "type" .Values.vmagent.nodeAffinityPreset.type "key" .Values.vmagent.nodeAffinityPreset.key "values" .Values.vmagent.nodeAffinityPreset.values ) | nindent 10 }}
+      serviceAccount: drycc-victoriametrics-vmagent
+      initContainers:
+      - name: drycc-victoriametrics-vmstorage-init
+        image: {{.Values.imageRegistry}}/{{.Values.imageOrg}}/python-dev:latest
+        imagePullPolicy: {{.Values.imagePullPolicy}}
+        args:
+        - netcat
+        - -v
+        - -a
+        - {{ printf "drycc-victoriametrics-vminsert.%s.svc.%s:8480" $.Release.Namespace $.Values.global.clusterDomain }}
       containers:
       - name: drycc-victoriametrics-vmagent
         image: {{.Values.imageRegistry}}/{{.Values.imageOrg}}/victoriametrics:{{.Values.imageTag}}
@@ -39,6 +49,7 @@ spec:
         - --remoteWrite.url={{ printf "http://drycc-victoriametrics-vminsert.%s.svc.%s:8480/insert/0/prometheus/api/v1/write" $.Release.Namespace $.Values.global.clusterDomain }}
         - --remoteWrite.tmpDataPath=/data
         - --httpListenAddr=:8429
+        - --promscrape.config=/opt/drycc/victoriametrics/config/prometheus.yaml
         - --promscrape.cluster.membersCount={{.Values.vmagent.replicas}}
         - --promscrape.cluster.memberNum=$(SHARD_NUM)
         {{- if .Values.vmagent.extraArgs }}
@@ -55,7 +66,7 @@ spec:
         - name: SHARD_NUM
           valueFrom:
             fieldRef:
-              fieldPath: metadata.annotations['apps.kubernetes.io/pod-index']
+              fieldPath: metadata.labels['apps.kubernetes.io/pod-index']
         livenessProbe:
           tcpSocket:
             port: 8429
@@ -70,6 +81,12 @@ spec:
         volumeMounts:
         - name: empty-dir
           mountPath: /data
+        - name: victoriametrics-vmagent-config
+          readOnly: true
+          mountPath: /opt/drycc/victoriametrics/config
       volumes:
       - name: empty-dir
         emptyDir: {}
+      - name: victoriametrics-vmagent-config
+        configMap:
+          name: victoriametrics-vmagent-config

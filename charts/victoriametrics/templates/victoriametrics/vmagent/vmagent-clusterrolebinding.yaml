@@ -1,0 +1,16 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ printf "%s:drycc-victoriametrics-vmagent" .Release.Namespace | quote }}  
+  labels:
+    app: drycc-victoriametrics
+    heritage: drycc
+    component: drycc-victoriametrics-vmagent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ printf "%s:drycc-victoriametrics-vmagent" .Release.Namespace | quote }}
+subjects:
+- kind: ServiceAccount
+  name: drycc-victoriametrics-vmagent
+  namespace: {{ .Release.Namespace }}
