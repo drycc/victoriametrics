@@ -2,6 +2,10 @@ apiVersion: v1
 kind: Service
 metadata:
   name: drycc-victoriametrics-vmstorage
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8482"
+    prometheus.io/path: "/metrics"
   labels:
     app: drycc-victoriametrics
     heritage: drycc
