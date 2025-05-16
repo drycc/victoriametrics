@@ -38,7 +38,6 @@ vmagent:
   resources: {}
   extraArgs:
   - --memory.allowedPercent=70
-  - --promscrape.suppressScrapeErrors
   - --promscrape.cluster.replicationFactor=2
   - --remoteWrite.queues=16
   - --remoteWrite.maxBlockSize=8MB
