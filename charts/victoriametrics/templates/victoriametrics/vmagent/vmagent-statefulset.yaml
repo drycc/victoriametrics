@@ -17,10 +17,6 @@ spec:
       labels: {{- include "common.labels.standard" . | nindent 8 }}
         app: drycc-victoriametrics
         component: drycc-victoriametrics-vmagent
-      annotations:
-        prometheus.io/path: "/metrics"
-        prometheus.io/port: "8429"
-        prometheus.io/scrape: "true"
     spec:
       affinity:
         podAffinity: {{- include "common.affinities.pods" (dict "type" .Values.vmagent.podAffinityPreset.type "component" "" "extraMatchLabels" .Values.vmagent.podAffinityPreset.extraMatchLabels "topologyKey" "" "context" $) | nindent 10 }}
