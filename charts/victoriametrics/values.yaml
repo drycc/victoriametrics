@@ -46,6 +46,10 @@ vmagent:
   - --remoteWrite.sendTimeout=30s
   - --remoteWrite.maxRowsPerBlock=300000
   prometheus: ""
+  persistence:
+    enabled: false
+    size: 5Gi
+    storageClass: ""
 
 ## victoriametrics vminsert configuration
 ##
@@ -113,10 +117,6 @@ vmstorage:
     #   memory: 30Mi
   extraArgs:
   - --retentionPeriod=30d
-  temporary:
-    enabled: false
-    size: 5Gi
-    storageClass: ""
   persistence:
     enabled: false
     size: 5Gi

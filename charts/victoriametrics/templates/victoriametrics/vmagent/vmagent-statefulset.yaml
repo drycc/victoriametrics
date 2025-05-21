@@ -75,14 +75,31 @@ spec:
             path: /health
             port: 8429
         volumeMounts:
-        - name: empty-dir
+        {{- if .Values.vmagent.persistence.enabled }}
+        - name: victoriametrics-vmagent-data
           mountPath: /data
+        {{- end }}
         - name: victoriametrics-vmagent-config
           readOnly: true
           mountPath: /opt/drycc/victoriametrics/config
       volumes:
-      - name: empty-dir
-        emptyDir: {}
       - name: victoriametrics-vmagent-config
         configMap:
           name: victoriametrics-vmagent-config
+  {{- if .Values.vmagent.persistence.enabled }}
+  volumeClaimTemplates:
+  - metadata:
+      name: victoriametrics-vmagent-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      {{- if .Values.vmagent.persistence.storageClass }}
+      {{- if (eq "-" .Values.vmagent.persistence.storageClass) }}
+      storageClassName: ""
+      {{- else }}
+      storageClassName: "{{ .Values.vmagent.persistence.storageClass }}"
+      {{- end }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.vmagent.persistence.size | quote }}
+  {{- end }}

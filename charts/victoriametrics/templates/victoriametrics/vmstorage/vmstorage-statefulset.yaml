@@ -34,10 +34,7 @@ spec:
         args:
         - vmstorage
         - --httpListenAddr=:8482
-        {{- if .Values.vmstorage.temporary.enabled }}
-        - --temporaryDataPath=/data/temporary
-        {{- end }}
-        - --storageDataPath=/data/storage
+        - --storageDataPath=/data
         - --vminsertAddr=:8400
         - --vmselectAddr=:8401
         {{- if .Values.vmstorage.extraArgs }}
@@ -63,38 +60,15 @@ spec:
           httpGet:
             path: /health
             port: 8482
-        {{- if or .Values.vmstorage.temporary.enabled .Values.vmstorage.persistence.enabled }}
-        volumeMounts:
-        {{- if .Values.vmstorage.temporary.enabled }}
-        - name: victoriametrics-vmstorage-temporary
-          mountPath: /data/temporary
-        {{- end }}
         {{- if .Values.vmstorage.persistence.enabled }}
-        - name: victoriametrics-vmstorage-storage
-          mountPath: /data/storage
+        volumeMounts:
+        - name: victoriametrics-vmstorage-data
+          mountPath: /data
         {{- end }}
-        {{- end }}
-  {{- if or .Values.vmstorage.temporary.enabled .Values.vmstorage.persistence.enabled }}
-  volumeClaimTemplates:
-  {{- if .Values.vmstorage.temporary.enabled }}
-  - metadata:
-      name: victoriametrics-vmstorage-temporary
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      {{- if .Values.vmstorage.temporary.storageClass }}
-      {{- if (eq "-" .Values.vmstorage.temporary.storageClass) }}
-      storageClassName: ""
-      {{- else }}
-      storageClassName: "{{ .Values.vmstorage.temporary.storageClass }}"
-      {{- end }}
-      {{- end }}
-      resources:
-        requests:
-          storage: {{ .Values.vmstorage.temporary.size | quote }}
-  {{- end }}
   {{- if .Values.vmstorage.persistence.enabled }}
+  volumeClaimTemplates:
   - metadata:
-      name: victoriametrics-vmstorage-storage
+      name: victoriametrics-vmstorage-data
     spec:
       accessModes: [ "ReadWriteOnce" ]
       {{- if .Values.vmstorage.persistence.storageClass }}
@@ -107,5 +81,4 @@ spec:
       resources:
         requests:
           storage: {{ .Values.vmstorage.persistence.size | quote }}
-  {{- end }}
   {{- end }}
