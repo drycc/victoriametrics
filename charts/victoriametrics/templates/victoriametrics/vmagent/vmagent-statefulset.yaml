@@ -24,12 +24,14 @@ spec:
         nodeAffinity: {{- include "common.affinities.nodes" (dict "type" .Values.vmagent.nodeAffinityPreset.type "key" .Values.vmagent.nodeAffinityPreset.key "values" .Values.vmagent.nodeAffinityPreset.values ) | nindent 10 }}
       serviceAccount: drycc-victoriametrics-vmagent
       initContainers:
-      - name: drycc-victoriametrics-vmstorage-init
+      - name: drycc-victoriametrics-vmagent-init
         image: {{.Values.imageRegistry}}/{{.Values.imageOrg}}/python-dev:latest
         imagePullPolicy: {{.Values.imagePullPolicy}}
         args:
         - netcat
         - -v
+        - -a
+        - $(DRYCC_CONTROLLER_API_SERVICE_HOST):$(DRYCC_CONTROLLER_API_SERVICE_PORT)
         - -a
         - {{ printf "drycc-victoriametrics-vminsert.%s.svc.%s:8480" $.Release.Namespace $.Values.global.clusterDomain }}
       containers:
@@ -42,7 +44,7 @@ spec:
         {{- else }}
         args:
         - vmagent
-        - --remoteWrite.url={{ printf "http://drycc-victoriametrics-vminsert.%s.svc.%s:8480/insert/0/prometheus/api/v1/write" $.Release.Namespace $.Values.global.clusterDomain }}
+        - --remoteWrite.url={{ printf "http://drycc-victoriametrics-vminsert.%s.svc.%s:8480/insert/multitenant/prometheus/api/v1/write" $.Release.Namespace $.Values.global.clusterDomain }}
         - --remoteWrite.tmpDataPath=/data
         - --httpListenAddr=:8429
         - --promscrape.config=/opt/drycc/victoriametrics/config/prometheus.yaml

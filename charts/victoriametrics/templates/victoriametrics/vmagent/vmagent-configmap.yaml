@@ -11,41 +11,44 @@ data:
     {{- (tpl .Values.vmagent.prometheus $)  | nindent 4 }}
     {{- else }}
     global:
-      ## How frequently to scrape targets by default
-      ##
       scrape_interval: 1m
-      ## How long until a scrape request times out
-      ##
       scrape_timeout: 10s
     scrape_configs:
       - job_name: vmagent
         static_configs:
           - targets: ["localhost:8429"]
+      - job_name: "controller-nodes"
+        scheme: http
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        kubernetes_sd_configs:
+          - role: node
+        relabel_configs:
+          - target_label: __address__
+            replacement: drycc-controller-api.{{.Release.Namespace}}.svc.{{.Values.global.clusterDomain}}:80
+          - source_labels: [__meta_kubernetes_node_name]
+            regex: (.+)
+            target_label: __metrics_path__
+            replacement: /v2/nodes/$1/proxy/metrics
+      - job_name: "controller-nodes-cadvisor"
+        scheme: http
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        kubernetes_sd_configs:
+          - role: node
+        relabel_configs:
+          - target_label: __address__
+            replacement: drycc-controller-api.{{.Release.Namespace}}.svc.{{.Values.global.clusterDomain}}:80
+          - source_labels: [__meta_kubernetes_node_name]
+            regex: (.+)
+            target_label: __metrics_path__
+            replacement: /v2/nodes/$1/proxy/metrics/cadvisor
       - job_name: "kubernetes-apiservers"
         kubernetes_sd_configs:
           - role: endpoints
-        # Default to scraping over https. If required, just disable this or change to
-        # `http`.
         scheme: https
-        # This TLS & bearer token file config is used to connect to the actual scrape
-        # endpoints for cluster components. This is separate to discovery auth
-        # configuration because discovery & scraping are two separate concerns in
-        # Prometheus. The discovery auth config is automatic if Prometheus runs inside
-        # the cluster. Otherwise, more config options have to be provided within the
-        # <kubernetes_sd_config>.
         tls_config:
           ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-          # If your node certificates are self-signed or use a different CA to the
-          # master CA, then you need to disable certificate verification. Note that
-          # certificate verification is an integral part of a secure infrastructure
-          # so this should only be disabled in a controlled environment. You can
-          # enable certificate verification by commenting the line below.
-          #
           insecure_skip_verify: true
         bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-        # Keep only the default/kubernetes service endpoints for the https port. This
-        # will add targets for each API server which Kubernetes adds an endpoint to
-        # the default/kubernetes service.
         relabel_configs:
           - source_labels:
               [
@@ -56,23 +59,9 @@ data:
             action: keep
             regex: default;kubernetes;https
       - job_name: "kubernetes-nodes"
-        # Default to scraping over https. If required, just disable this or change to
-        # `http`.
         scheme: https
-        # This TLS & bearer token file config is used to connect to the actual scrape
-        # endpoints for cluster components. This is separate to discovery auth
-        # configuration because discovery & scraping are two separate concerns in
-        # Prometheus. The discovery auth config is automatic if Prometheus runs inside
-        # the cluster. Otherwise, more config options have to be provided within the
-        # <kubernetes_sd_config>.
         tls_config:
           ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-          # If your node certificates are self-signed or use a different CA to the
-          # master CA, then you need to disable certificate verification. Note that
-          # certificate verification is an integral part of a secure infrastructure
-          # so this should only be disabled in a controlled environment. You can
-          # enable certificate verification by commenting the line below.
-          #
           insecure_skip_verify: true
         bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
         kubernetes_sd_configs:
@@ -87,32 +76,13 @@ data:
             target_label: __metrics_path__
             replacement: /api/v1/nodes/$1/proxy/metrics
       - job_name: "kubernetes-nodes-cadvisor"
-        # Default to scraping over https. If required, just disable this or change to
-        # `http`.
         scheme: https
-        # This TLS & bearer token file config is used to connect to the actual scrape
-        # endpoints for cluster components. This is separate to discovery auth
-        # configuration because discovery & scraping are two separate concerns in
-        # Prometheus. The discovery auth config is automatic if Prometheus runs inside
-        # the cluster. Otherwise, more config options have to be provided within the
-        # <kubernetes_sd_config>.
         tls_config:
           ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-          # If your node certificates are self-signed or use a different CA to the
-          # master CA, then disable certificate verification below. Note that
-          # certificate verification is an integral part of a secure infrastructure
-          # so this should only be disabled in a controlled environment. You can
-          # disable certificate verification by uncommenting the line below.
-          #
           insecure_skip_verify: true
         bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
         kubernetes_sd_configs:
           - role: node
-        # This configuration will work only on kubelet 1.7.3+
-        # As the scrape endpoints for cAdvisor have changed
-        # if you are using older version you need to change the replacement to
-        # replacement: /api/v1/nodes/$1:4194/proxy/metrics
-        # more info here https://github.com/coreos/prometheus-operator/issues/633
         relabel_configs:
           - action: labelmap
             regex: __meta_kubernetes_node_label_(.+)
