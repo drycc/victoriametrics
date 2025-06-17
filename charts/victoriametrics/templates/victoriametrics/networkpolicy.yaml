@@ -15,11 +15,22 @@ spec:
           kubernetes.io/metadata.name: {{.Release.Namespace}}
       podSelector:
         matchLabels:
-          app: drycc-controller-api
+          app: drycc-victoriametrics
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: drycc-victoriametrics-vmauth
+spec:
+  podSelector:
+    matchLabels:
+      app: drycc-victoriametrics
+      component: drycc-victoriametrics-vmauth
+  policyTypes:
+  - Ingress
+  ingress:
   - from:
     - namespaceSelector:
         matchLabels:
           kubernetes.io/metadata.name: {{.Release.Namespace}}
-      podSelector:
-        matchLabels:
-          app: drycc-victoriametrics

@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: drycc-victoriametrics-vmauth
+  labels:
+    app: drycc-victoriametrics
+    heritage: drycc
+    component: drycc-victoriametrics-vmauth
+spec:
+  replicas: {{ .Values.vmauth.replicas }}
+  selector:
+    matchLabels:
+      app: drycc-victoriametrics
+      component: drycc-victoriametrics-vmauth
+  template:
+    metadata:
+      labels: {{- include "common.labels.standard" . | nindent 8 }}
+        app: drycc-victoriametrics
+        component: drycc-victoriametrics-vmauth
+    spec:
+      affinity:
+        podAffinity: {{- include "common.affinities.pods" (dict "type" .Values.vmauth.podAffinityPreset.type "component" "" "extraMatchLabels" .Values.vmauth.podAffinityPreset.extraMatchLabels "topologyKey" "" "context" $) | nindent 10 }}
+        podAntiAffinity: {{- include "common.affinities.pods" (dict "type" .Values.vmauth.podAntiAffinityPreset.type "component" "" "extraMatchLabels" .Values.vmauth.podAntiAffinityPreset.extraMatchLabels "topologyKey" "" "context" $) | nindent 10 }}
+        nodeAffinity: {{- include "common.affinities.nodes" (dict "type" .Values.vmauth.nodeAffinityPreset.type "key" .Values.vmauth.nodeAffinityPreset.key "values" .Values.vmauth.nodeAffinityPreset.values ) | nindent 10 }}
+      initContainers:
+      - name: drycc-victoriametrics-vmauth-init
+        image: {{.Values.imageRegistry}}/{{.Values.imageOrg}}/python-dev:latest
+        imagePullPolicy: {{.Values.imagePullPolicy}}
+        args:
+        - netcat
+        - -v
+        - -a
+        - drycc-victoriametrics-vmselect.{{.Release.Namespace}}.svc.{{.Values.global.clusterDomain}}:8481
+        - -a
+        - drycc-victoriametrics-vminsert.{{.Release.Namespace}}.svc.{{.Values.global.clusterDomain}}:8480
+      containers:
+      - name: drycc-victoriametrics-vmauth
+        image: {{.Values.imageRegistry}}/{{.Values.imageOrg}}/victoriametrics:{{.Values.imageTag}}
+        imagePullPolicy: {{.Values.imagePullPolicy}}
+        {{- if .Values.diagnosticMode.enabled }}
+        command: {{- include "common.tplvalues.render" (dict "value" .Values.diagnosticMode.command "context" $) | nindent 10 }}
+        args: {{- include "common.tplvalues.render" (dict "value" .Values.diagnosticMode.args "context" $) | nindent 10 }}
+        {{- else }}
+        args:
+        - vmauth
+        - --auth.config=/etc/victoriametrics/vmauth.yaml
+        {{- if .Values.vmauth.extraArgs }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.vmauth.extraArgs "context" $) | nindent 8 }}
+        {{- end }}
+        {{- end }}
+        {{- with index .Values "vmauth" "resources" }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        ports:
+        - containerPort: 8427
+        livenessProbe:
+          tcpSocket:
+            port: 8427
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8427
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8427
+        volumeMounts:
+          - name: victoriametrics-vmauth-config
+            subPath: vmauth.yaml
+            readOnly: true
+            mountPath: /etc/victoriametrics/vmauth.yaml
+      volumes:
+        - name: victoriametrics-vmauth-config
+          configMap:
+            name: victoriametrics-vmauth-config
