@@ -54,8 +54,8 @@ vmagent:
 ## victoriametrics vmauth configuration
 ##
 vmauth:
-  username: admin
-  password: admin
+  username: ""
+  password: ""
   nodeAffinityPreset:
     key: "drycc.cc/node"
     type: "soft"
