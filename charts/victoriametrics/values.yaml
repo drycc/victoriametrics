@@ -51,28 +51,6 @@ vmagent:
     size: 5Gi
     storageClass: ""
 
-## victoriametrics vmauth configuration
-##
-vmauth:
-  username: ""
-  password: ""
-  nodeAffinityPreset:
-    key: "drycc.cc/node"
-    type: "soft"
-    values:
-    - "true"
-  podAffinityPreset:
-    type: ""
-    extraMatchLabels:
-      security: "drycc-security"
-  podAntiAffinityPreset:
-    type: "soft"
-    extraMatchLabels:
-      app: "drycc-victoriametrics-vmauth"
-  replicas: 1
-  resources: {}
-  extraArgs: {}
-
 ## victoriametrics vminsert configuration
 ##
 vminsert:
