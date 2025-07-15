@@ -30,10 +30,8 @@ spec:
         args:
         - netcat
         - -v
-        - -a
-        - $(DRYCC_CONTROLLER_API_SERVICE_HOST):$(DRYCC_CONTROLLER_API_SERVICE_PORT)
-        - -a
-        - {{ printf "drycc-victoriametrics-vminsert.%s.svc.%s:8480" $.Release.Namespace $.Values.global.clusterDomain }}
+        - -u
+        - http://drycc-controller-api,http://drycc-victoriametrics-vminsert:8480
       containers:
       - name: drycc-victoriametrics-vmagent
         image: {{.Values.imageRegistry}}/{{.Values.imageOrg}}/victoriametrics:{{.Values.imageTag}}
@@ -44,7 +42,7 @@ spec:
         {{- else }}
         args:
         - vmagent
-        - --remoteWrite.url={{ printf "http://drycc-victoriametrics-vminsert.%s.svc.%s:8480/insert/multitenant/prometheus/api/v1/write" $.Release.Namespace $.Values.global.clusterDomain }}
+        - --remoteWrite.url=http://drycc-victoriametrics-vminsert:8480/insert/multitenant/prometheus/api/v1/write
         - --remoteWrite.tmpDataPath=/data
         - --httpListenAddr=:8429
         - --promscrape.config=/opt/drycc/victoriametrics/config/prometheus.yaml

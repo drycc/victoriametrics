@@ -1,7 +1,7 @@
 {{- $replicas := .Values.vmstorage.replicas | int -}}
 {{- $endpoints := list -}}
 {{- range $i := until $replicas -}}
-  {{- $endpoint := printf "drycc-victoriametrics-vmstorage-%d.drycc-victoriametrics-vmstorage.%s.svc.%s:8400" $i $.Release.Namespace $.Values.global.clusterDomain -}}
+  {{- $endpoint := printf "drycc-victoriametrics-vmstorage-%d.drycc-victoriametrics-vmstorage:8400" $i -}}
   {{- $endpoints = append $endpoints $endpoint -}}
 {{- end -}}
 {{- $storageNodes := join "," $endpoints -}}

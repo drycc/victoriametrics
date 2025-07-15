@@ -24,7 +24,7 @@ data:
           - role: node
         relabel_configs:
           - target_label: __address__
-            replacement: drycc-controller-api.{{.Release.Namespace}}.svc.{{.Values.global.clusterDomain}}:80
+            replacement: drycc-controller-api:80
           - source_labels: [__meta_kubernetes_node_name]
             regex: (.+)
             target_label: __metrics_path__
@@ -36,7 +36,7 @@ data:
           - role: node
         relabel_configs:
           - target_label: __address__
-            replacement: drycc-controller-api.{{.Release.Namespace}}.svc.{{.Values.global.clusterDomain}}:80
+            replacement: drycc-controller-api:80
           - source_labels: [__meta_kubernetes_node_name]
             regex: (.+)
             target_label: __metrics_path__
@@ -132,7 +132,7 @@ data:
               ]
             separator: ;
             regex: (.+);(.+)
-            replacement: $1.$2.svc.cluster.local
+            replacement: $1.$2.svc
             target_label: __address__
           - source_labels:
               [
@@ -142,7 +142,7 @@ data:
               ]
             separator: ;
             regex: (.+);(.+);(\d+)
-            replacement: $1.$2.svc.cluster.local:$3
+            replacement: $1.$2.svc:$3
             target_label: __address__
       - job_name: "kubernetes-service-endpoints"
         honor_labels: true
