@@ -15,7 +15,7 @@ spec:
           kubernetes.io/metadata.name: {{.Release.Namespace}}
       podSelector:
         matchLabels:
-          app: drycc-controller-api
+          app: drycc-controller
   - from:
     - namespaceSelector:
         matchLabels:
