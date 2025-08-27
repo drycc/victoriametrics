@@ -216,3 +216,5 @@ kubeStateMetrics:
     - storageclasses
     - validatingwebhookconfigurations
     - volumeattachments
+  metricAnnotationsAllowList:
+    - persistentvolumeclaims=[*]
