@@ -57,6 +57,53 @@ data:
             replacement: drycc-controller-metric:8000
           - target_label: __metrics_path__
             replacement: /v2/metrics
+      - job_name: "controller-pods"
+        scheme: http
+        honor_labels: true
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - action: drop
+            source_labels: [__meta_kubernetes_pod_container_init]
+            regex: true
+          - action: keep_if_equal
+            source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_port, __meta_kubernetes_pod_container_port_number]
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - target_label: __param_scheme
+            replacement: http
+          - source_labels: [__address__]
+            regex: ([^:]+)(?::\d+)?
+            target_label: __param_host
+            replacement: $1
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_port, __meta_kubernetes_pod_container_port_number]
+            regex: (\d+);.*|.*;(\d+)
+            target_label: __param_port
+            replacement: ${1}${2}
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            regex: (.+)
+            target_label: __param_path
+            replacement: $1
+          - source_labels: [__param_path]
+            regex: ^$
+            replacement: /metrics
+            target_label: __param_path
+          - target_label: __address__
+            replacement: drycc-controller-metric:8000
+          - target_label: __metrics_path__
+            replacement: /v2/metrics
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+          - source_labels: [__meta_kubernetes_pod_container_name]
+            target_label: container
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            action: replace
+            target_label: node
       - job_name: "kubernetes-apiservers"
         kubernetes_sd_configs:
           - role: endpoints
