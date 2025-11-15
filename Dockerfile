@@ -4,9 +4,9 @@ FROM registry.drycc.cc/drycc/base:${CODENAME}
 ARG DRYCC_UID=1001 \
   DRYCC_GID=1001 \
   DRYCC_HOME_DIR=/data \
-  NODE_EXPORTER_VERSION="1.9.1" \
+  NODE_EXPORTER_VERSION="1.10.2" \
   KUBE_STATE_METRICS="2.17.0" \
-  VICTORIAMETRICS_VERSION="1.125.1"
+  VICTORIAMETRICS_VERSION="1.129.1"
 
 RUN groupadd drycc --gid ${DRYCC_GID} \
   && useradd drycc -u ${DRYCC_UID} -g ${DRYCC_GID} -s /bin/bash -m -d ${DRYCC_HOME_DIR} \
