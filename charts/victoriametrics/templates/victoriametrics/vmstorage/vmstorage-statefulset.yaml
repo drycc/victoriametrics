@@ -23,6 +23,10 @@ spec:
         podAffinity: {{- include "common.affinities.pods" (dict "type" .Values.vmstorage.podAffinityPreset.type "component" "" "extraMatchLabels" .Values.vmstorage.podAffinityPreset.extraMatchLabels "topologyKey" "" "context" $) | nindent 10 }}
         podAntiAffinity: {{- include "common.affinities.pods" (dict "type" .Values.vmstorage.podAntiAffinityPreset.type "component" "" "extraMatchLabels" .Values.vmstorage.podAntiAffinityPreset.extraMatchLabels "topologyKey" "" "context" $) | nindent 10 }}
         nodeAffinity: {{- include "common.affinities.nodes" (dict "type" .Values.vmstorage.nodeAffinityPreset.type "key" .Values.vmstorage.nodeAffinityPreset.key "values" .Values.vmstorage.nodeAffinityPreset.values ) | nindent 10 }}
+      securityContext:
+        fsGroup: 1001
+        runAsGroup: 1001
+        runAsUser: 1001
       containers:
       - name: drycc-victoriametrics-vmstorage
         image: {{.Values.imageRegistry}}/{{.Values.imageOrg}}/victoriametrics:{{.Values.imageTag}}

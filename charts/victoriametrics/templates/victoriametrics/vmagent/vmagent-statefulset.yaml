@@ -23,6 +23,10 @@ spec:
         podAntiAffinity: {{- include "common.affinities.pods" (dict "type" .Values.vmagent.podAntiAffinityPreset.type "component" "" "extraMatchLabels" .Values.vmagent.podAntiAffinityPreset.extraMatchLabels "topologyKey" "" "context" $) | nindent 10 }}
         nodeAffinity: {{- include "common.affinities.nodes" (dict "type" .Values.vmagent.nodeAffinityPreset.type "key" .Values.vmagent.nodeAffinityPreset.key "values" .Values.vmagent.nodeAffinityPreset.values ) | nindent 10 }}
       serviceAccount: drycc-victoriametrics-vmagent
+      securityContext:
+        fsGroup: 1001
+        runAsGroup: 1001
+        runAsUser: 1001
       initContainers:
       - name: drycc-victoriametrics-vmagent-init
         image: {{.Values.imageRegistry}}/{{.Values.imageOrg}}/python-dev:latest
